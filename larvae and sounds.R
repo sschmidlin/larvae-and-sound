@@ -2,14 +2,17 @@ install.packages("dplyr")
 install.packages("Matrix")
 install.packages("lme4")
 install.packages("ggeffects")
+install.packages("lsmeans")
+install.packages("emmeans")
+library(ggplot2)
 library(dplyr)
 library(Matrix)
 library(lme4)
 library(ggeffects)
-
+library(lsmeans)
+library(emmeans)
 
 #loading data 
-
 data <- read.csv2(file="sound_data.csv", head=TRUE, sep=",")
 colnames(data)[1]<- "date"
 data <- data[, 1:7]
