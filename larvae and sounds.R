@@ -63,6 +63,7 @@ marginal_speaker <-lsmeans(model_speaker, ~ speaker)
 pairs(marginal_speaker, adjust="tukey")
 
 #adding cup position as fixed effect
+#only batches 2,3,4 were used in this because we didn't record cup position for the first day of the experiment
 data_batch2 <- subset(data, date == "4-Mar")
 data_batch3 <- subset(data, date == "5-Mar")
 data_batch4 <- subset(data, date == "7-Mar")
@@ -79,6 +80,4 @@ plot(m)+
 labs(x = 'Treatment', 
             y= 'Larvae Settled (%)',
             title = "")
-
-
 
