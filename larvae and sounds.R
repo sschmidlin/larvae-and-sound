@@ -45,7 +45,6 @@ pairs(marginal, adjust="tukey")
 
 #checking for an effect from random variables
 #adding date as a fixed effect
-
 model_date <-glmer(settled ~ date + (1 | treatment), data = data, family = binomial)
 car::Anova(model_date, type=2)
 marginal_date <-lsmeans(model_date, ~date)
@@ -74,10 +73,12 @@ car::Anova(model_cup, type=2)
 marginal_cup <-lsmeans(model_cup, ~ cup_position)
 pairs(marginal_cup, adjust="tukey")
 
-#prediction plots
+#prediction plot
 m <- ggpredict(model, terms = c("treatment"))
 plot(m)+
 labs(x = 'Treatment', 
             y= 'Larvae Settled (%)',
             title = "")
+
+
 
