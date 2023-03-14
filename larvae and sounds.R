@@ -76,4 +76,8 @@ pairs(marginal_cup, adjust="tukey")
 
 #prediction plots
 m <- ggpredict(model, terms = c("treatment"))
-plot(m)
+plot(m)+
+labs(x = 'Treatment', 
+            y= 'Larvae Settled (%)',
+            title = "")
+
