@@ -74,3 +74,6 @@ car::Anova(model_cup, type=2)
 marginal_cup <-lsmeans(model_cup, ~ cup_position)
 pairs(marginal_cup, adjust="tukey")
 
+#prediction plots
+m <- ggpredict(model, terms = c("treatment"))
+plot(m)
