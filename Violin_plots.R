@@ -6,6 +6,7 @@ data2 <- data2[, 1:8]
 data2 <- data2[1:100,]
 data2$treatment <- as.factor(data2$treatment)
 data2$proportion_settled <- as.numeric(data2$proportion_settled)
+data2$date <- as.factor(data2$date)
 library(ggplot2)
 
 #ANOVA all data
@@ -81,3 +82,4 @@ ggplot(data_batch4, aes(x = treatment, y = proportion_settled, fill = treatment)
   stat_summary(fun.data = mean_sdl) +
   xlab("Treatment batch 4") + ylab("Settled") +
   theme_classic()
+

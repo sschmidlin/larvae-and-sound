@@ -22,7 +22,9 @@ data$tank <- as.factor(data$tank)
 data$date <- as.factor(data$date)
 data$speaker <- as.factor(data$speaker)
 data$cup_position <- as.factor(data$cup_position)
-
+data$date <- as.character(data$date)
+data$speaker <- ifelse(data$speaker == "x", "0", data$speaker)
+data$speaker <- ifelse(data$speaker == "5", "0", data$speaker)
 
 # Calculate response variable from input data, adding binary data settled =1 not-settled = 0 
 mult_s <- rep(1:nrow(data), data[, 'settled'])
@@ -37,7 +39,7 @@ colnames(data_u)[5] <- 'settled'
 data <- rbind(data_s, data_u)
 
 # GLM
-model <-glmer(settled ~ treatment + (1 | date), data = data, family = binomial)
+model <-glmer(settled ~ treatment + (1|date) , data = data, family = binomial)
 car::Anova(model, type=2)
 
 #post hoc  
