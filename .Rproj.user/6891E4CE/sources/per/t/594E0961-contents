@@ -13,6 +13,7 @@ library(lsmeans)
 library(emmeans)
 
 #loading data 
+getwd()
 data <- read.csv2(file="sound_data.csv", head=TRUE, sep=",")
 colnames(data)[1]<- "date"
 data <- data[, 1:7]
@@ -51,6 +52,18 @@ model_date <-glmer(settled ~ date + (1 | treatment), data = data, family = binom
 car::Anova(model_date, type=2)
 marginal_date <-lsmeans(model_date, ~date)
 pairs(marginal_date, adjust="tukey")
+
+#prediction plot
+m <- ggpredict(model_date, terms = c("date"))
+
+png(file="figures/larvae_settled_date.pdf")
+
+plot(m)+
+  labs(x = 'Date', 
+       y= 'Larvae Settled (%)',
+       title = "")
+
+dev.off()
 
 #adding tank as a fixed effect 
 model_tank <-glmer(settled ~ tank + (1 | treatment) + (1 | speaker) + (1 | date), data = data, family = binomial)
