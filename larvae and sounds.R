@@ -139,6 +139,7 @@ plot(m2)+
 
 
 #only healthy reef sound over date
+
 data_healthy <- subset(data, treatment == "healthy reef")
 model_healthy <- glm(settled ~ date, data = data_healthy, family = binomial)
 car::Anova(model_healthy, type=2)
@@ -151,6 +152,10 @@ plot(m3)+
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
+
+
+
+
 
 #only off reef sound over date
 data_off <- subset(data, treatment == "off reef")
