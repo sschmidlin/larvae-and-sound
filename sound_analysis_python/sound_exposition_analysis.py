@@ -49,17 +49,6 @@ def compute_indices(signal_recorded, fs_recorded):
     aei = maad.features.acoustic_eveness_index(sxx, f)
     return aci_value, adi, aei
 
-
-recorded_path = input('Path to 1h recorded files:')
-original_path = input('Path to the files used for the experiment:')
-recorded_levels_folder = pathlib.Path(recorded_path)
-original_levels_folder = pathlib.Path(original_path)
-metadata_path = original_levels_folder.joinpath('metadata.json')
-
-f = open(metadata_path)
-metadata = json.load(f)
-f.close()
-
 output_folder = pathlib.Path("../figures")
 results_path = output_folder.joinpath('results_spl.csv')
 results_original_path = output_folder.joinpath('results_spl_original_files.csv')
@@ -68,6 +57,16 @@ all_treatment_names = ['reef', 'off_reef', 'boat']
 columns = ['batch', 'treatment', 'spl', 'low_freq', 'mid_freq', 'high_freq', 'aci', 'adi', 'aei']
 
 if not results_path.exists():
+    recorded_path = input('Path to 1h recorded files:')
+    original_path = input('Path to the files used for the experiment:')
+    recorded_levels_folder = pathlib.Path(recorded_path)
+    original_levels_folder = pathlib.Path(original_path)
+    metadata_path = original_levels_folder.joinpath('metadata.json')
+
+    f = open(metadata_path)
+    metadata = json.load(f)
+    f.close()
+
     p_ref = 1.0
     hy_sens = -158
     Vpp = 2.0
@@ -173,11 +172,13 @@ psd_results = psd_results.melt(id_vars=['origin', 'batch', 'treatment'], value_v
                                var_name='freq', value_name='spl')
 psd_results['freq'] = psd_results['freq'].astype(float)
 
+plt.rcParams.update({'font.size': 22})
 g = sns.FacetGrid(psd_results, col='origin', row='batch', hue='treatment', sharex=True,
-                  sharey=True, xlim=(10, max_freq))
+                  sharey=True, xlim=(20, max_freq), height=4, aspect=1.5, palette='colorblind')
 g.map(sns.lineplot, 'freq', 'spl')
 g.set(xscale='symlog')
 g.set_axis_labels('Frequency [Hz]', r'PSD [dB re $1 \mu Pa^2/Hz^{-1}$]')
+g.set_titles('{col_name} | {row_name}')
 g.add_legend()
 plt.savefig(output_folder.joinpath('figure_summary_psd.png'))
 plt.show()
@@ -185,12 +186,23 @@ plt.show()
 # Plot the metrics
 acu_columns = list(set(columns) - set(['batch', 'origin', 'treatment']))
 metrics_results = total_results.melt(id_vars=['origin', 'treatment', 'batch'], value_vars=acu_columns,
-                                     var_name='acu_feature', value_name='value')
-sns.catplot(
-    data=metrics_results, x='treatment', y='value', col='acu_feature', hue='origin',
-    kind='box', col_wrap=3, sharex=True, sharey=False,
+                                     var_name='feature', value_name='value')
+
+# Get ADI out
+metrics_results = metrics_results.loc[metrics_results.feature != 'adi']
+metrics_results["feature"] = metrics_results["feature"].map({'aci': "ACI", 'aei': "AEI", 'spl': 'SPL',
+                                                             'low_freq': 'low frequency', 'mid_freq': 'mid frequency',
+                                                             'high_freq': 'high frequency'})
+
+g = sns.catplot(
+    data=metrics_results, x='treatment', y='value', col='feature', hue='origin',
+    kind='box', col_wrap=3, sharex=True, sharey=False, height=5, aspect=1.2,
+    col_order=['low frequency', 'mid frequency', 'high frequency', 'SPL', 'ACI', 'AEI'],
+    order=['no_sound', 'off_reef', 'reef', 'boat', 'reef_and_boat'], palette='colorblind'
 )
-plt.legend()
+g.set_axis_labels('', 'Value')
+g.set_xticklabels(['NS', 'OFF', 'R', 'R+B', 'B'])
+g.set_titles('{col_name}')
 plt.savefig(output_folder.joinpath('figure_summary_metrics.png'))
 plt.show()
 
