@@ -9,7 +9,6 @@ import maad
 import json
 import seaborn as sns
 
-
 LOW_FREQ = [0, 1000]
 MID_FREQ = [1000, 5000]
 HIGH_FREQ = [5000, 10000]
@@ -22,7 +21,7 @@ def compute_psd(signal_recorded, fs_recorded):
 
     # Compute the psd
     freq_, psd_ = sig.welch(signal_recorded, fs=fs_recorded, window=window, nfft=NFFT,
-                            scaling='density', noverlap=int(NFFT/2))
+                            scaling='density', noverlap=int(NFFT / 2))
     return freq_, psd_
 
 
@@ -43,15 +42,18 @@ def compute_spl(signal_recorded):
 
 def compute_indices(signal_recorded, fs_recorded):
     sxx, _, f, _ = maad.sound.spectrogram(signal_recorded, fs_recorded, window='hann',
-                                          nperseg=NFFT, noverlap=int(NFFT/2), mode='psd')
-    _, _ , aci_value = maad.features.acoustic_complexity_index(sxx)
+                                          nperseg=NFFT, noverlap=int(NFFT / 2), mode='psd')
+    _, _, aci_value = maad.features.acoustic_complexity_index(sxx)
     adi = maad.features.acoustic_diversity_index(sxx, f)
     aei = maad.features.acoustic_eveness_index(sxx, f)
     return aci_value, adi, aei
 
+
 output_folder = pathlib.Path("../figures")
-results_path = output_folder.joinpath('results_spl.csv')
-results_original_path = output_folder.joinpath('results_spl_original_files.csv')
+
+data_folder = pathlib.Path("../data")
+results_path = data_folder.joinpath('results_spl.csv')
+results_original_path = data_folder.joinpath('results_spl_original_files.csv')
 
 all_treatment_names = ['reef', 'off_reef', 'boat']
 columns = ['batch', 'treatment', 'spl', 'low_freq', 'mid_freq', 'high_freq', 'aci', 'adi', 'aei']
@@ -151,7 +153,6 @@ else:
     results_df = pd.read_csv(results_path, index_col=False)
     results_original = pd.read_csv(results_original_path, index_col=False)
 
-
 results_df['origin'] = 'experiment'
 results_original['origin'] = 'field'
 total_results = pd.concat([results_df, results_original])
@@ -198,8 +199,9 @@ metrics_results = total_results.melt(id_vars=['origin', 'treatment', 'batch'], v
 metrics_results["feature"] = metrics_results["feature"].map({'aci': "ACI", 'aei': "AEI", 'spl': 'SPL', 'adi': 'ADI',
                                                              'low_freq': 'low frequency', 'mid_freq': 'mid frequency',
                                                              'high_freq': 'high frequency'})
-metrics_results["treatment"] = metrics_results["treatment"].map({'no sound': 'NS', 'vessel': 'V', 'off reef': 'OFF', 'reef': 'R',
-                                                                 'reef and vessel': 'R+V'})
+metrics_results["treatment"] = metrics_results["treatment"].map(
+    {'no sound': 'NS', 'vessel': 'V', 'off reef': 'OFF', 'reef': 'R',
+     'reef and vessel': 'R+V'})
 
 plt.rcParams.update({'font.size': 24})
 fig, ax = plt.subplots(2, 4, figsize=(24, 12), sharex=True)
@@ -232,7 +234,7 @@ sns.boxplot(metrics_results.loc[metrics_results['feature'] == 'ADI'], x='treatme
 ax[0][1].set_ylabel('Index value [unitless]')
 ax[0][1].set_title('ADI')
 g = sns.boxplot(metrics_results.loc[metrics_results['feature'] == 'AEI'], x='treatment', y='value', ax=ax[0][2],
-            hue='origin', order=['R', 'R+V', 'V', 'OFF', 'NS'], palette='colorblind', legend=True)
+                hue='origin', order=['R', 'R+V', 'V', 'OFF', 'NS'], palette='colorblind', legend=True)
 ax[0][2].set_title('AEI')
 ax[0][2].set_ylabel('Index value [unitless]')
 
@@ -242,16 +244,5 @@ ax[0][2].set_ylabel('Index value [unitless]')
 ax[0][3].axis('off')
 ax[0][3].legend(lines, handles)
 plt.tight_layout()
+plt.savefig(output_folder.joinpath('figure_summary_features.png'))
 plt.show()
-
-# g = sns.catplot(
-#     data=metrics_results, x='treatment', y='value', col='feature', hue='origin',
-#     kind='box', col_wrap=3, sharex=True, sharey=False, height=5, aspect=1.2,
-#     col_order=['low frequency', 'mid frequency', 'high frequency', 'SPL', 'ACI', 'AEI'],
-#     order=['no sound', 'off reef', 'reef', 'boat', 'reef and_boat'], palette='colorblind'
-# )
-# g.set_axis_labels('', 'Value')
-# g.set_xticklabels(['NS', 'OFF', 'R', 'B', 'R+B'])
-# g.set_titles('{col_name}')
-# plt.savefig(output_folder.joinpath('figure_summary_metrics.png'))
-# plt.show()
