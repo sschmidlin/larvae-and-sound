@@ -44,6 +44,12 @@ data_u <- data_u[, !(names(data_u) %in% c('settled'))]
 colnames(data_u)[5] <- 'settled'
 data <- rbind(data_s, data_u)
 
+treatment_order <- c("reef", "reef + vessel", "vessel", "off reef", "no sound") 
+data$treatment <- factor(data$treatment, levels = treatment_order)
+
+
+
+
 # GLM
 model <-glmer(settled ~ treatment + (1|date), data = data, family = binomial)
 car::Anova(model, type=2)
@@ -52,16 +58,16 @@ car::Anova(model, type=2)
 marginal <-lsmeans(model, ~treatment)
 pairs(marginal, adjust="tukey")
 
-#visuals 
-#prediction plot
+
+#creating prediction plots
 m <- ggpredict(model, terms = c("treatment"))
+
 plot(m)+
   geom_point() +
   labs(title = "", x = 'Treatment', y= 'Larvae Settled (%)') +
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
-
 
 
 #checking for an effect from random variables
@@ -71,7 +77,7 @@ car::Anova(model_date, type=2)
 marginal_date <-lsmeans(model_date, ~date)
 pairs(marginal_date, adjust="tukey")
 
-#prediction plot
+#prediction plot 
 m1 <- ggpredict(model_date, terms = c("date"))
 plot(m1)+
   geom_point() +
@@ -107,8 +113,6 @@ pairs(marginal_cup, adjust="tukey")
 
 #conclusion, as tank, speakers, and cup position are all non significant we can exclude these from consideration in the model.
 #date does cause a significant difference. 
-
-
 
 #only boat sounds over date 
 
@@ -154,9 +158,6 @@ plot(m3)+
         plot.title = element_text(size = 15))
 
 
-
-
-
 #only off reef sound over date
 data_off <- subset(data, treatment == "off reef")
 model_off <- glm(settled ~ date, data = data_off, family = binomial)
@@ -170,7 +171,7 @@ plot(m4)+
        y= 'Larvae Settled (%)',
        title = "")
 
-#only no sound 
+#only no sound over date
 data_nosound <- subset(data, treatment == "no sound")
 model_nosound <- glm(settled ~ date, data = data_nosound, family = binomial)
 car::Anova(model_nosound, type=2)
@@ -197,7 +198,7 @@ plot(m6)+
        title = "")
 
 
-#adding the spl
+#displaying the acoustic characteristics: SPL, ADI, AEI. 
 
 #normalizing spl
 normalize <- function(x) {
@@ -222,3 +223,5 @@ boxplot(aci ~ date, data = data_healthy)
 boxplot(low_freq ~ treatment, data= data)
 boxplot(mid_freq ~ treatment, data= data)
 boxplot(high_freq ~ treatment, data= data)
+
+
