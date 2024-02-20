@@ -1,3 +1,5 @@
 tests.R
 .idea/
-
+.Rproj.user
+stats_analysis_R/.RData
+stats_analysis_R/.Rhistory
