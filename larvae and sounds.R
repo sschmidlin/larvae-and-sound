@@ -11,8 +11,9 @@ library(lme4)
 library(ggeffects)
 library(emmeans)
 library(lsmeans)
+library(cowplot)
 
-#loading data 
+#loading data  
 setwd("~/GitHub/larvae-and-sound")
 data <- read.csv2(file="sound_data.csv", head=TRUE, sep=",")
 colnames(data)[1]<- "date"
@@ -47,27 +48,38 @@ data <- rbind(data_s, data_u)
 treatment_order <- c("reef", "reef + vessel", "vessel", "off reef", "no sound") 
 data$treatment <- factor(data$treatment, levels = treatment_order)
 
-
-
-
-# GLM
+# FINAL GLM MODEL
 model <-glmer(settled ~ treatment + (1|date), data = data, family = binomial)
 car::Anova(model, type=2)
+summary(model)
 
 #post hoc  
 marginal <-lsmeans(model, ~treatment)
 pairs(marginal, adjust="tukey")
-
 
 #creating prediction plots
 m <- ggpredict(model, terms = c("treatment"))
 
 plot(m)+
   geom_point() +
-  labs(title = "", x = 'Treatment', y= 'Larvae Settled (%)') +
+  labs(title = "", x = ' ', y= 'Larvae Settled (%)') +
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
+
+
+#checking for an interaction effect from date and treatment 
+model_interaction <-glm(settled ~ treatment * date, data = data, family = binomial)
+summary(model_interaction)
+car::Anova(model_interaction, type=2)
+
+#post hoc  
+marginal <-lsmeans(model_interaction, ~treatment)
+pairs(marginal, adjust="tukey")
+
+marginal <-lsmeans(model_interaction, ~date)
+pairs(marginal, adjust="tukey")
+
 
 
 #checking for an effect from random variables
@@ -77,7 +89,6 @@ car::Anova(model_date, type=2)
 marginal_date <-lsmeans(model_date, ~date)
 pairs(marginal_date, adjust="tukey")
 
-#prediction plot 
 m1 <- ggpredict(model_date, terms = c("date"))
 plot(m1)+
   geom_point() +
@@ -93,11 +104,13 @@ car::Anova(model_tank, type=2)
 marginal_tank <-lsmeans(model_tank, ~ tank)
 pairs(marginal_tank, adjust="tukey")
 
+
 #adding speaker as a fixed effect
 model_speaker <-glmer(settled ~ speaker + (1 | treatment) + (1 | tank) + (1 | date), data = data, family = binomial)
 car::Anova(model_speaker, type=2)
 marginal_speaker <-lsmeans(model_speaker, ~ speaker)
 pairs(marginal_speaker, adjust="tukey")
+
 
 #adding cup position as fixed effect
 #only batches 2,3,4 were used in this because we didn't record cup position for the first day of the experiment
@@ -111,12 +124,14 @@ car::Anova(model_cup, type=2)
 marginal_cup <-lsmeans(model_cup, ~ cup_position)
 pairs(marginal_cup, adjust="tukey")
 
-#conclusion, as tank, speakers, and cup position are all non significant we can exclude these from consideration in the model.
+
+#conclusion: as tank, speakers, and cup position are all non significant we can exclude these from consideration in the model.
 #date does cause a significant difference. 
 
+#exploring why there is a significant effect from "date" 
 #only boat sounds over date 
 
-data_boat1 <- subset(data, treatment == "boat")
+data_boat1 <- subset(data, treatment == "vessel")
 data_boat1$boat <- data_boat1$date
 data_boat1 <- data_boat1 %>% 
   mutate(boat = recode(boat, "3-Mar" = "Faulbaums"))
@@ -144,15 +159,16 @@ plot(m2)+
 
 #only healthy reef sound over date
 
-data_healthy <- subset(data, treatment == "healthy reef")
+data_healthy <- subset(data, treatment == "reef")
 model_healthy <- glm(settled ~ date, data = data_healthy, family = binomial)
 car::Anova(model_healthy, type=2)
 marginal_healthy <-lsmeans(model_healthy, ~ date)
 pairs(marginal_healthy, adjust="tukey")
 
+m3 <- ggpredict(model_healthy, terms = c("date"))
 plot(m3)+
   geom_point() +
-  labs(title = "", x = 'Healthy reef', y= 'Larvae Settled (%)') +
+  labs(title = "", x = 'reef', y= 'Larvae Settled (%)') +
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
@@ -185,7 +201,7 @@ plot(m5)+
        title = "")
 
 #only reef + boat 
-data_RB <- subset(data, treatment == "healthy reef + boat")
+data_RB <- subset(data, treatment == "reef + vessel")
 model_RB <- glm(settled ~ date, data = data_RB, family = binomial)
 car::Anova(model_RB, type=2)
 marginal_RB <-lsmeans(model_RB, ~ date)
@@ -224,4 +240,75 @@ boxplot(low_freq ~ treatment, data= data)
 boxplot(mid_freq ~ treatment, data= data)
 boxplot(high_freq ~ treatment, data= data)
 
+#looking at data by day 
+data_3rd <- subset(data, date == "3-Mar")
+data_4th <- subset(data, date == "4-Mar")
+data_5th <- subset(data, date == "5-Mar")
+data_7th <- subset(data, date == "7-Mar")
 
+#3rd of march
+model_3rd <-glm(settled ~ treatment, data = data_3rd, family = binomial)
+car::Anova(model_3rd, type=2)
+
+marginal <-lsmeans(model_3rd, ~treatment)
+pairs(marginal, adjust="tukey")
+
+m7 <- ggpredict(model_3rd, terms = c("treatment"))
+
+plot(m7)+
+  geom_point() +
+  labs(title = "", x = ' ', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+#4th of March 
+model_4th <-glm(settled ~ treatment, data = data_4th, family = binomial)
+car::Anova(model_4th, type=2)
+
+#post hoc  
+marginal <-lsmeans(model_4th, ~treatment)
+pairs(marginal, adjust="tukey")
+
+#creating prediction plots
+m8 <- ggpredict(model_4th, terms = c("treatment"))
+
+plot(m8)+
+  geom_point() +
+  labs(title = "", x = ' ', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+#5th of March 
+model_5th <-glm(settled ~ treatment, data = data_5th, family = binomial)
+car::Anova(model_5th, type=2)
+
+  
+marginal <-lsmeans(model_5th, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+m9 <- ggpredict(model_5th, terms = c("treatment"))
+
+plot(m9)+
+  geom_point() +
+  labs(title = "", x = ' ', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+#7th of March 
+model_7th <-glm(settled ~ treatment, data = data_7th, family = binomial)
+car::Anova(model_7th, type=2)
+
+marginal <-lsmeans(model_7th, ~treatment)
+pairs(marginal, adjust="tukey")
+
+m10 <- ggpredict(model_7th, terms = c("treatment"))
+plot(m10)+
+  geom_point() +
+  labs(title = "", x = ' ', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))

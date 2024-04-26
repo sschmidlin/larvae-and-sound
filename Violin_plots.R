@@ -1,5 +1,6 @@
 #Loading data
 
+setwd("~/GitHub/larvae-and-sound")
 data2 <- read.csv2(file="sound_data2.csv", head=TRUE, sep=",")
 colnames(data2)[1]<- "date"
 data2 <- data2[, 1:8]
