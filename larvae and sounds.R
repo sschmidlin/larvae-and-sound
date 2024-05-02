@@ -122,8 +122,8 @@ plot(m)+
 #                     #
 #######################
 
-model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data, family = binomial)
-marginal <-lsmeans(model, ~treatment)
+base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data, family = binomial)
+marginal <-lsmeans(base_model, ~treatment)
 pairs(marginal, adjust="tukey")
 
 m <- ggpredict(base_model, terms = c("treatment", "date"))
@@ -133,11 +133,6 @@ plot(m)+
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
-
-
-
-
-
 
 
 
