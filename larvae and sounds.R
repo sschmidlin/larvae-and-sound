@@ -1,3 +1,250 @@
+#install.packages("dplyr")
+#install.packages("Matrix")
+#install.packages("lme4")
+#install.packages("ggeffects")
+#install.packages("lsmeans")
+#install.packages("emmeans")
+library(ggplot2)
+library(dplyr)
+library(Matrix)
+library(lme4)
+library(ggeffects)
+library(emmeans)
+library(lsmeans)
+library(cowplot)
+
+
+################
+#              #
+# Loading data #
+#--------------#
+#              #
+################
+data <- read.csv2(file="./data2.csv", head=TRUE, sep=",")
+
+
+#############################
+#                           #
+# Prepare data for analysis #
+#---------------------------#
+#                           #
+#############################
+# Turn treatment into a factor and assign a specific order for the factor levels
+treatment_order <- c("reef", "reef + vessel", "vessel", "off reef", "no sound") 
+data$treatment <- factor(data$treatment, levels = treatment_order)
+
+# Turn speaker, tank, data and cup_position into factors
+data$tank <- as.factor(data$tank)
+data$date <- as.factor(data$date)
+data$speaker <- as.factor(data$speaker)
+data$cup_position = as.factor(data$cup_position)
+
+# Make a new factor that includes cup identity
+cup_1 = as.numeric(data$cup_position)
+for (i in 1:nrow(data)){
+  if (data$date[i] == '3-Mar'){
+    cup_1[i] = data$larvae_cup[i]
+  }
+}
+data$cup <- as.factor(paste(data$date, data$tank, cup_1, sep = "_"))
+
+
+##########################################
+#                                        #
+# Evaluating which predictors to include #
+#----------------------------------------#
+#                                        #
+##########################################
+
+# Test inclusion of speaker effect
+#---------------------------------
+data_without_speaker = subset(data, speaker!=1) #exclude no sound treatments from data because they do not have a speaker
+data_without_speaker$speaker <- droplevels(data_without_speaker$speaker, exclude = "1")
+
+# Define the initial model
+base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data_without_speaker, family = binomial)
+
+# Define the updated model
+speaker_model <- glmer(settled ~ treatment + date + speaker + (1|treatment:date) + (1|cup), data = data_without_speaker, family = binomial)
+anova(base_model, speaker_model)
+
+m <- ggpredict(speaker_model, terms = c("speaker"))
+plot(m)+
+  geom_point() +
+  labs(title = "", x = 'Speaker', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+
+# Test inclusion of tank effect
+#------------------------------
+# Define the initial model
+base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data, family = binomial)
+
+# Define the updated model
+tank_model <- glmer(settled ~ treatment + date + tank + (1|treatment:date) + (1|cup), data = data, family = binomial)
+anova(base_model, tank_model)
+
+m <- ggpredict(tank_model, terms = c("tank"))
+plot(m)+
+  geom_point() +
+  labs(title = "", x = 'Tank', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+
+# Test inclusion of the effect of cup position
+#---------------------------------------------
+data_without_cup_position <- subset(data, !is.na(cup_position)) # Exclude rows without cup position
+
+# Define the initial model
+base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data_without_cup_position, family = binomial)
+
+# Define the updated model
+cup_position_model <- glmer(settled ~ treatment + date + cup_position + (1|treatment:date) + (1|cup), data = data_without_cup_position, family = binomial)
+anova(base_model, cup_position_model)
+
+m <- ggpredict(cup_position_model, terms = c("cup_position"))
+plot(m)+
+  geom_point() +
+  labs(title = "", x = 'Cup position', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+
+#######################
+#                     #
+# Run the final model #
+#---------------------#
+#                     #
+#######################
+
+model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data, family = binomial)
+marginal <-lsmeans(model, ~treatment)
+pairs(marginal, adjust="tukey")
+
+m <- ggpredict(base_model, terms = c("treatment", "date"))
+plot(m)+
+  geom_point() +
+  labs(title = "", x = 'Treatment', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Old code, do not run
+
+summary(base_model)
+car::Anova(base_model, type=2)
+marginal <-lsmeans(base_model, ~treatment)
+pairs(marginal, adjust="tukey")
+
+m <- ggpredict(base_model, terms = c("treatment", "date"))
+plot(m)+
+  geom_point() +
+  labs(title = "", x = 'Treatment', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+new_data <- subset(data, !is.na(cup_position))
+new_data2 = subset(data, speaker!=1)
+
+model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = new_data2, family = binomial)
+model_1 <- glmer(settled ~ treatment + date + speaker + (1|treatment:date) + (1|cup), data = new_data2, family = binomial)
+anova(model, model_1)
+sum = summary(model)
+sum$AICtab[1]
+
+car::Anova(model, type=2)
+marginal <-lsmeans(model, ~treatment)
+pairs(marginal, adjust="tukey")
+
+m <- ggpredict(model, terms = c("treatment", "date"))
+plot(m)+
+  geom_point() +
+  labs(title = "", x = 'Treatment', y= 'Larvae Settled (%)') +
+  theme(axis.text = element_text(size = 11),
+        axis.title = element_text(size = 11),
+        plot.title = element_text(size = 15))
+
+# List of candidate variables
+candidate_variables <- c("cup_position", "speaker", "tank", "date")
+
+# Initialize empty lists to store selected fixed and random effects
+selected_fixed_effects <- c("treatment")  
+selected_random_effects <- c()
+
+# Forward selection procedure
+for (variable in candidate_variables) {
+  # Add the current variable as a fixed effect
+  fixed_formula <- paste("settled ~", paste(selected_fixed_effects, collapse = " + "), "+", variable,
+                         if (length(selected_random_effects) > 0) paste("+ (1|", paste(selected_random_effects, collapse = " + "), ")", sep = ""),
+                         "+ (1|dummy_group)", sep = "")
+  
+  # Fit the model with the added fixed effect
+  fixed_model <- glmer(as.formula(fixed_formula), data = data, family = binomial)
+  
+  # Add the current variable as a random effect
+  random_formula <- paste("settled ~", paste(selected_fixed_effects, collapse = " + "),
+                          if (length(selected_fixed_effects) > 0) paste("+", paste(selected_fixed_effects, collapse = " + "), "+", variable, sep = "") else paste("+", variable),
+                          if (length(selected_random_effects) > 0) paste("+ (1|", paste(selected_random_effects, collapse = " + "), ")", sep = ""),
+                          "+ (1|dummy_group)", sep = "")
+  
+  # Fit the model with the added random effect
+  random_model <- glmer(as.formula(random_formula), data = data, family = binomial)
+  
+  # Compare models using AIC
+  if (AIC(fixed_model) < AIC(base_model)) {
+    base_model <- fixed_model
+    selected_fixed_effects <- c(selected_fixed_effects, variable)
+  }
+  
+  if (AIC(random_model) < AIC(base_model)) {
+    base_model <- random_model
+    selected_random_effects <- c(selected_random_effects, variable)
+  }
+}
+
+# Print the final selected fixed and random effects
+print(selected_fixed_effects)
+
+print(selected_random_effects)
+
+# Print the final model summary
+summary(base_model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#old code, please ignore
+
 install.packages("dplyr")
 install.packages("Matrix")
 install.packages("lme4")
