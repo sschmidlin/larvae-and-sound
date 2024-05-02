@@ -14,7 +14,7 @@ library(lsmeans)
 library(cowplot)
 
 #loading data  
-setwd("~/GitHub/larvae-and-sound")
+setwd("~/GitHub/larvae-and-sound/data")
 data <- read.csv2(file="sound_data.csv", head=TRUE, sep=",")
 colnames(data)[1]<- "date"
 data <- data[1:100,]
@@ -48,8 +48,59 @@ data <- rbind(data_s, data_u)
 treatment_order <- c("reef", "reef + vessel", "vessel", "off reef", "no sound") 
 data$treatment <- factor(data$treatment, levels = treatment_order)
 
+
+#checking for an effect from random variables
+#adding date as a fixed effect
+model_date <-glmer(settled ~ date + treatment + (1|speaker) + (1|tank), data = data, family = binomial)
+car::Anova(model_date, type=2)
+marginal_date <-lsmeans(model_date, ~date)
+pairs(marginal_date, adjust="tukey")
+
+
+#adding tank as a fixed effect 
+model_tank <-glmer(settled ~ tank + treatment + (1 | speaker) + (1 | date), data = data, family = binomial)
+car::Anova(model_tank, type=2)
+marginal_tank <-lsmeans(model_tank, ~ tank)
+pairs(marginal_tank, adjust="tukey")
+
+
+#adding speaker as a fixed effect
+model_speaker <-glmer(settled ~ speaker + treatment + (1 | tank) + (1 | date), data = data, family = binomial)
+car::Anova(model_speaker, type=2)
+marginal_speaker <-lsmeans(model_speaker, ~ speaker)
+pairs(marginal_speaker, adjust="tukey")
+
+
+#adding cup position as fixed effect
+#only batches 2,3,4 were used in this because we didn't record cup position for the first day of the experiment
+data_batch2 <- subset(data, date == "4-Mar")
+data_batch3 <- subset(data, date == "5-Mar")
+data_batch4 <- subset(data, date == "7-Mar")
+data_batch234 <- rbind(data_batch2, data_batch3, data_batch4)
+
+model_cup <-glmer(settled ~ treatment + cup_position + (1 | tank) + (1 | date), data = data_batch234, family = binomial)
+car::Anova(model_cup, type=2)
+marginal_cup <-lsmeans(model_cup, ~ cup_position)
+pairs(marginal_cup, adjust="tukey")
+
+#conclusion: as tank, speakers, and cup position are all non significant we can exclude these from consideration in the model.
+#date does cause a significant difference. 
+
+#checking for an interaction effect from date and treatment 
+model_interaction <-glmer(settled ~ treatment * date + (1|speaker) + (1|tank), data = data, family = binomial)
+summary(model_interaction)
+car::Anova(model_interaction, type=2)
+
+marginal <-lsmeans(model_interaction, ~treatment)
+pairs(marginal, adjust="tukey")
+
+marginal <-lsmeans(model_interaction, ~date)
+pairs(marginal, adjust="tukey")
+
+
 # FINAL GLM MODEL
-model <-glmer(settled ~ treatment + (1|date), data = data, family = binomial)
+
+model <-glmer(settled ~ treatment + date + (1|cup_position), data = data, family = binomial)
 car::Anova(model, type=2)
 summary(model)
 
@@ -68,65 +119,14 @@ plot(m)+
         plot.title = element_text(size = 15))
 
 
-#checking for an interaction effect from date and treatment 
-model_interaction <-glm(settled ~ treatment * date, data = data, family = binomial)
-summary(model_interaction)
-car::Anova(model_interaction, type=2)
-
-#post hoc  
-marginal <-lsmeans(model_interaction, ~treatment)
-pairs(marginal, adjust="tukey")
-
-marginal <-lsmeans(model_interaction, ~date)
-pairs(marginal, adjust="tukey")
 
 
 
-#checking for an effect from random variables
-#adding date as a fixed effect
-model_date <-glmer(settled ~ date + (1 | treatment), data = data, family = binomial)
-car::Anova(model_date, type=2)
-marginal_date <-lsmeans(model_date, ~date)
-pairs(marginal_date, adjust="tukey")
-
-m1 <- ggpredict(model_date, terms = c("date"))
-plot(m1)+
-  geom_point() +
-  labs(title = "", x = 'Treatment', y= 'Larvae Settled (%)') +
-  theme(axis.text = element_text(size = 16),
-        axis.title = element_text(size = 16),
-        plot.title = element_text(size = 20))
 
 
-#adding tank as a fixed effect 
-model_tank <-glmer(settled ~ tank + (1 | treatment) + (1 | speaker) + (1 | date), data = data, family = binomial)
-car::Anova(model_tank, type=2)
-marginal_tank <-lsmeans(model_tank, ~ tank)
-pairs(marginal_tank, adjust="tukey")
 
 
-#adding speaker as a fixed effect
-model_speaker <-glmer(settled ~ speaker + (1 | treatment) + (1 | tank) + (1 | date), data = data, family = binomial)
-car::Anova(model_speaker, type=2)
-marginal_speaker <-lsmeans(model_speaker, ~ speaker)
-pairs(marginal_speaker, adjust="tukey")
 
-
-#adding cup position as fixed effect
-#only batches 2,3,4 were used in this because we didn't record cup position for the first day of the experiment
-data_batch2 <- subset(data, date == "4-Mar")
-data_batch3 <- subset(data, date == "5-Mar")
-data_batch4 <- subset(data, date == "7-Mar")
-data_batch234 <- rbind(data_batch2, data_batch3, data_batch4)
-
-model_cup <-glmer(settled ~ cup_position + (1 | treatment) + (1 | tank) + (1 | date), data = data_batch234, family = binomial)
-car::Anova(model_cup, type=2)
-marginal_cup <-lsmeans(model_cup, ~ cup_position)
-pairs(marginal_cup, adjust="tukey")
-
-
-#conclusion: as tank, speakers, and cup position are all non significant we can exclude these from consideration in the model.
-#date does cause a significant difference. 
 
 #exploring why there is a significant effect from "date" 
 #only boat sounds over date 
@@ -312,3 +312,117 @@ plot(m10)+
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
+
+
+
+
+
+#-------------------------------------------------------------------------------------
+#new models ignore
+
+model11 <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data, family = binomial)
+
+model12  <-glmer(settled ~ treatment + date + (1|treatment:date), data = data, family = binomial)
+summary(model12)
+car::Anova(model12, type=2)
+marginal <-lsmeans(model12, ~treatment)
+pairs(marginal, adjust="tukey")
+
+model13  <-glmer(settled ~ treatment + date + (1|cup_position), data = data, family = binomial)
+summary(model13)
+car::Anova(model13, type=2)
+marginal <-lsmeans(model13, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+model14  <-glmer(settled ~ treatment + date + (1|speaker), data = data, family = binomial)
+summary(model14)
+car::Anova(model14, type=2)
+marginal <-lsmeans(model14, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+model15  <-glmer(settled ~ treatment + date + (1|tank), data = data, family = binomial)
+summary(model15)
+car::Anova(model15, type=2)
+marginal <-lsmeans(model15, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+model16  <-glmer(settled ~ treatment + date + (1|cup_position) + (1|speaker), data = data, family = binomial)
+summary(model16)
+car::Anova(model16, type=2)
+marginal <-lsmeans(model16, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+model17  <-glmer(settled ~ treatment + date + (1|speaker) + (1|tank), data = data, family = binomial)
+summary(model17)
+car::Anova(model17, type=2)
+marginal <-lsmeans(model17, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+model18  <-glmer(settled ~ treatment + date + (1|cup_position) + (1|tank), data = data, family = binomial)
+summary(model18)
+car::Anova(model18, type=2)
+marginal <-lsmeans(model18, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+
+
+model19  <-glmer(settled ~ treatment + date + (1|cup_position) + (1|speaker), data = data, family = binomial)
+summary(model19)
+car::Anova(model19, type=2)
+marginal <-lsmeans(model19, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+
+model20  <-glmer(settled ~ treatment + (1|cup_position) + (1|speaker), data = data, family = binomial)
+summary(model20)
+
+model21  <-glmer(settled ~ treatment + (1|cup_position), data = data, family = binomial)
+summary(model21)
+
+model22  <-glmer(settled ~ treatment + (1|cup_position) + (1|speaker) + (1|tank), data = data, family = binomial)
+summary(model22)
+
+model23  <-glmer(settled ~ treatment + (1|date), data = data, family = binomial)
+summary(model23)
+
+
+model24  <-glmer(settled ~ treatment + date + (1|cup_position), data = data, family = binomial)
+summary(model24)
+car::Anova(model24, type=2)
+marginal <-lsmeans(model24, ~treatment)
+pairs(marginal, adjust="tukey")
+
+model25  <-glmer(settled ~ treatment + date + cup_position + (1|speaker), data = data, family = binomial)
+summary(model25)
+
+model26  <-glmer(settled ~ treatment + date + cup_position + (1|tank), data = data, family = binomial)
+summary(model26)
+
+model25  <-glmer(settled ~ treatment + date + cup_position, data = data, family = binomial)
+summary(model25)
+
+model26  <-glmer(settled ~ treatment + date + (1|cup_position) + (1|speaker) + (1|tank), data = data, family = binomial)
+summary(model26)
+car::Anova(model26, type=2)
+marginal <-lsmeans(model26, ~treatment)
+pairs(marginal, adjust="tukey")
+
+
+model27  <-glm(settled ~ treatment + date, data = data, family = binomial)
+summary(model27)
+car::Anova(model27, type=2)
+marginal <-lsmeans(model27, ~treatment)
+pairs(marginal, adjust="tukey")
+
+model28  <-glmer(settled ~ treatment + date + (1|cup_position), data = data, family = binomial)
+summary(model28)
+car::Anova(model28, type=2)
+marginal <-lsmeans(model28, ~treatment)
+pairs(marginal, adjust="tukey")
