@@ -20,6 +20,7 @@ library(cowplot)
 #--------------#
 #              #
 ################
+
 data <- read.csv2(file="./data2.csv", head=TRUE, sep=",")
 
 
@@ -32,21 +33,23 @@ data <- read.csv2(file="./data2.csv", head=TRUE, sep=",")
 # Turn treatment into a factor and assign a specific order for the factor levels
 treatment_order <- c("reef", "reef + vessel", "vessel", "off reef", "no sound") 
 data$treatment <- factor(data$treatment, levels = treatment_order)
+colnames(data)[colnames(data) == "cup_position"] <- "jar_position"
+colnames(data)[colnames(data) == "larvae_cup"] <- "larvae_jar"
 
-# Turn speaker, tank, data and cup_position into factors
+# Turn speaker, tank, data and jar_position into factors
 data$tank <- as.factor(data$tank)
 data$date <- as.factor(data$date)
 data$speaker <- as.factor(data$speaker)
-data$cup_position = as.factor(data$cup_position)
+data$jar_position = as.factor(data$jar_position)
 
-# Make a new factor that includes cup identity
-cup_1 = as.numeric(data$cup_position)
+# Make a new factor that includes jar identity
+cup_1 = as.numeric(data$jar_position)
 for (i in 1:nrow(data)){
   if (data$date[i] == '3-Mar'){
-    cup_1[i] = data$larvae_cup[i]
+    cup_1[i] = data$larvae_jar[i]
   }
 }
-data$cup <- as.factor(paste(data$date, data$tank, cup_1, sep = "_"))
+data$jar <- as.factor(paste(data$date, data$tank, cup_1, sep = "_"))
 
 
 ##########################################
@@ -62,10 +65,10 @@ data_without_speaker = subset(data, speaker!=1) #exclude no sound treatments fro
 data_without_speaker$speaker <- droplevels(data_without_speaker$speaker, exclude = "1")
 
 # Define the initial model
-base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data_without_speaker, family = binomial)
+base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|jar), data = data_without_speaker, family = binomial)
 
 # Define the updated model
-speaker_model <- glmer(settled ~ treatment + date + speaker + (1|treatment:date) + (1|cup), data = data_without_speaker, family = binomial)
+speaker_model <- glmer(settled ~ treatment + date + speaker + (1|treatment:date) + (1|jar), data = data_without_speaker, family = binomial)
 anova(base_model, speaker_model)
 
 m <- ggpredict(speaker_model, terms = c("speaker"))
@@ -80,10 +83,10 @@ plot(m)+
 # Test inclusion of tank effect
 #------------------------------
 # Define the initial model
-base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data, family = binomial)
+base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|jar), data = data, family = binomial)
 
 # Define the updated model
-tank_model <- glmer(settled ~ treatment + date + tank + (1|treatment:date) + (1|cup), data = data, family = binomial)
+tank_model <- glmer(settled ~ treatment + date + tank + (1|treatment:date) + (1|jar), data = data, family = binomial)
 anova(base_model, tank_model)
 
 m <- ggpredict(tank_model, terms = c("tank"))
@@ -97,19 +100,19 @@ plot(m)+
 
 # Test inclusion of the effect of cup position
 #---------------------------------------------
-data_without_cup_position <- subset(data, !is.na(cup_position)) # Exclude rows without cup position
+data_without_jar_position <- subset(data, !is.na(jar_position)) # Exclude rows without jar position
 
 # Define the initial model
-base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data_without_cup_position, family = binomial)
+base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|jar), data = data_without_jar_position, family = binomial)
 
 # Define the updated model
-cup_position_model <- glmer(settled ~ treatment + date + cup_position + (1|treatment:date) + (1|cup), data = data_without_cup_position, family = binomial)
-anova(base_model, cup_position_model)
+jar_position_model <- glmer(settled ~ treatment + date + jar_position + (1|treatment:date) + (1|jar), data = data_without_jar_position, family = binomial)
+anova(base_model, jar_position_model)
 
-m <- ggpredict(cup_position_model, terms = c("cup_position"))
+m <- ggpredict(jar_position_model, terms = c("jar_position"))
 plot(m)+
   geom_point() +
-  labs(title = "", x = 'Cup position', y= 'Larvae Settled (%)') +
+  labs(title = "", x = 'Jar position', y= 'Larvae Settled (%)') +
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
@@ -122,7 +125,7 @@ plot(m)+
 #                     #
 #######################
 
-base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|cup), data = data, family = binomial)
+base_model <- glmer(settled ~ treatment + date + (1|treatment:date) + (1|jar), data = data, family = binomial)
 marginal <-lsmeans(base_model, ~treatment)
 pairs(marginal, adjust="tukey")
 
@@ -141,8 +144,7 @@ plot(m)+
 
 
 
-
-# Old code, do not run
+########## Old code, do not run #############
 
 summary(base_model)
 car::Anova(base_model, type=2)
@@ -256,7 +258,7 @@ library(lsmeans)
 library(cowplot)
 
 #loading data  
-setwd("~/GitHub/larvae-and-sound/data")
+#setwd("C:/Users/sarah.schmidlin/Documents/GitHub/larvae-and-sound/data")
 data <- read.csv2(file="sound_data.csv", head=TRUE, sep=",")
 colnames(data)[1]<- "date"
 data <- data[1:100,]
@@ -359,15 +361,6 @@ plot(m)+
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
-
-
-
-
-
-
-
-
-
 
 
 #exploring why there is a significant effect from "date" 
@@ -554,11 +547,6 @@ plot(m10)+
   theme(axis.text = element_text(size = 11),
         axis.title = element_text(size = 11),
         plot.title = element_text(size = 15))
-
-
-
-
-
 #-------------------------------------------------------------------------------------
 #new models ignore
 
