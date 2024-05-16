@@ -1,4 +1,4 @@
-# Navigating soundscapes: Attractant effect of reef sound on oyster settlement may be attenuated by vessel noise
+# Navigating soundscapes: Comparison of the effects of reef and anthropogenic soundscapes on oyster larvae settlement
 
 This repository is a collection of the data and the scripts necessary to reproduce the results of the paper: 
 
